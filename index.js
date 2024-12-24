@@ -44,13 +44,24 @@ async function run() {
     const volunteerCollection = client.db('volunteerDB').collection('volunteer');
 
 
+    const messagesCollection = client.db('volunteerDB').collection('messages')
+
+    // contact us pages
+    app.post('/contact-form', async (req, res) => {
+        const { name, email, message } = req.body;
+       const result =  messagesCollection.insertOne({ name, email, message })
+       res.send(result)
+          
+      });
+      
+
 
     // Get Volunteer Posts Sorted by Deadline
     app.get('/volunteers', async (req, res) => {
         const volunteers = await volunteerCollection.find().sort({ deadline: 1 }).limit(6).toArray();
         res.send(volunteers);
     });
-    
+
     // add volunteer need post
     app.post('/volunteers', async(req,res)=>{
         const volunteer = req.body;
