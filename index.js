@@ -45,8 +45,13 @@ async function run() {
 
 
 
+    // Get Volunteer Posts Sorted by Deadline
+    app.get('/volunteers', async (req, res) => {
+        const volunteers = await volunteerCollection.find().sort({ deadline: 1 }).limit(6).toArray();
+        res.send(volunteers);
+    });
+    
     // add volunteer need post
-
     app.post('/volunteers', async(req,res)=>{
         const volunteer = req.body;
         const result = await volunteerCollection.insertOne(volunteer);
