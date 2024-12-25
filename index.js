@@ -44,6 +44,19 @@ async function run() {
             res.send(volunteers);
         });
 
+
+
+
+        // Fetch all posts or search by title
+        app.get('/volunteersAll', async (req, res) => {
+            const searchQuery = req.query.search || '';
+            const regex = new RegExp(searchQuery, 'i');
+            const query = searchQuery ? { title: { $regex: regex } } : {};
+            const volunteers = await volunteerCollection.find(query).toArray();
+            res.send(volunteers);
+        });
+
+
         // Get Volunteer Post Details
         app.get('/volunteers/:id', async (req, res) => {
             const { id } = req.params;
