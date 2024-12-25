@@ -68,10 +68,10 @@ async function run() {
         app.post('/volunteers', async (req, res) => {
             const volunteer = req.body;
 
-            // Ensure the volunteersNeeded field is a number (parse it)
+           
             volunteer.volunteersNeeded = parseInt(volunteer.volunteersNeeded, 10);
 
-            // Insert the volunteer post into the collection
+           
             const result = await volunteerCollection.insertOne(volunteer);
             res.send(result);
         });
@@ -81,44 +81,61 @@ async function run() {
             const requestData = req.body;
         
             try {
+                const { volunteerPostId } = requestData;
+        
                
+                if (!ObjectId.isValid(volunteerPostId)) {
+                    return res.status(400).json({ message: 'Invalid Volunteer Post ID format.' });
+                }
+        
+                // Fetch the volunteer post
+                const volunteerPost = await volunteerCollection.findOne({ _id: new ObjectId(volunteerPostId) });
+        
+                if (!volunteerPost) {
+                    return res.status(404).json({ message: 'Volunteer post not found.' });
+                }
+        
+            
+                let volunteersNeeded = parseInt(volunteerPost.volunteersNeeded, 10);
+        
+                if (isNaN(volunteersNeeded)) {
+                    return res.status(400).json({ message: 'The volunteersNeeded field is not a valid number.' });
+                }
+        
+             
+                if (volunteersNeeded > 0) {
+                    
+                    const updateResult = await volunteerCollection.updateOne(
+                        { _id: new ObjectId(volunteerPostId) },
+                        { $set: { volunteersNeeded: volunteersNeeded - 1 } }
+                    );
+        
+                    if (updateResult.modifiedCount === 0) {
+                        return res.status(400).json({ message: 'Failed to update volunteersNeeded.' });
+                    }
+                } else {
+                    return res.status(400).json({ message: 'No more volunteers needed for this post.' });
+                }
+        
                 const result = await requestsCollection.insertOne(requestData);
         
                 if (result.insertedId) {
-                  
-                    const requestDoc = await requestsCollection.findOne({ _id: result.insertedId });
-        
-                    if (!requestDoc) {
-                        return res.status(404).json({ message: 'Request not found.' });
-                    }
-        
-                   
-                    if (typeof requestDoc.volunteersNeeded !== 'number') {
-                        await requestsCollection.updateOne(
-                            { _id: result.insertedId },
-                            { $set: { volunteersNeeded: parseInt(requestDoc.volunteersNeeded, 10) } }
-                        );
-                    }
-        
-                   
-                    const updateResult = await requestsCollection.updateOne(
-                        { _id: result.insertedId },
-                        { $inc: { volunteersNeeded: -1 } }
-                    );
-        
-                    if (updateResult.modifiedCount === 1) {
-                        return res.status(200).json({ message: 'Request successfully submitted and updated', insertedId: result.insertedId });
-                    } else {
-                        return res.status(400).json({ message: 'Failed to update request count.' });
-                    }
+                    res.status(200).json({
+                        message: 'Volunteer request successfully submitted.',
+                        insertedId: result.insertedId,
+                    });
                 } else {
-                    return res.status(400).json({ message: 'Failed to submit request. Please try again.' });
+                    res.status(400).json({ message: 'Failed to submit volunteer request.' });
                 }
             } catch (error) {
-                console.log(error);
-                return res.status(500).json({ message: 'Server error while processing the request.' });
+                console.error('Error processing volunteer request:', error);
+                res.status(500).json({ message: 'Internal Server Error' });
             }
         });
+        
+        
+        
+        
         
         
         await client.db("admin").command({ ping: 1 });
