@@ -12,8 +12,8 @@ const port = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-    origin : ['http://localhost:5174'],
-    credentials : true
+    origin: ['http://localhost:5174'],
+    credentials: true
 }));
 app.use(express.json());
 app.use(cookieParser());
@@ -41,25 +41,25 @@ async function run() {
 
 
         // auth related APIs
-        app.post('/jwt', (req,res)=>{
+        app.post('/jwt', (req, res) => {
             const user = req.body;
-            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET,{expiresIn : '25h'});
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '25h' });
 
-            res.cookie('token', token,{
-                httpOnly : true,
-                secure : false
-            })
-            .send({success: true})
-        })
-
-        app.post('/logout', (req,res)=>{
-            res.clearCookie('token',{
+            res.cookie('token', token, {
                 httpOnly: true,
                 secure: false
             })
-            .send({success : true})
+                .send({ success: true })
         })
-      
+
+        app.post('/logout', (req, res) => {
+            res.clearCookie('token', {
+                httpOnly: true,
+                secure: false
+            })
+                .send({ success: true })
+        })
+
 
         // Contact Us Page
         app.post('/contact-form', async (req, res) => {
@@ -94,14 +94,32 @@ async function run() {
             res.send(post);
         });
 
+
+
+        // Get all posts for a user
+        app.get('/my-volunteer-posts', async (req, res) => {
+            const { email } = req.query; // User's email passed as a query parameter
+            const posts = await volunteerCollection.find({ organizerEmail: email }).toArray();
+            res.send(posts);
+          });
+
+
+          app.get('/volunteer-post/:id', async (req, res) => {
+            const { id } = req.params;
+            const post = await volunteerCollection.findOne({ _id: new ObjectId(id) });
+            res.send(post);
+          });
+
+
+
         // Add Volunteer Post (Ensure volunteersNeeded is numeric)
         app.post('/volunteers', async (req, res) => {
             const volunteer = req.body;
 
-           
+
             volunteer.volunteersNeeded = parseInt(volunteer.volunteersNeeded, 10);
 
-           
+
             const result = await volunteerCollection.insertOne(volunteer);
             res.send(result);
         });
@@ -109,46 +127,46 @@ async function run() {
         // Request Volunteer - Decrement Volunteers Needed
         app.post('/request-volunteer', async (req, res) => {
             const requestData = req.body;
-        
+
             try {
                 const { volunteerPostId } = requestData;
-        
-               
+
+
                 if (!ObjectId.isValid(volunteerPostId)) {
                     return res.status(400).json({ message: 'Invalid Volunteer Post ID format.' });
                 }
-        
+
                 // Fetch the volunteer post
                 const volunteerPost = await volunteerCollection.findOne({ _id: new ObjectId(volunteerPostId) });
-        
+
                 if (!volunteerPost) {
                     return res.status(404).json({ message: 'Volunteer post not found.' });
                 }
-        
-            
+
+
                 let volunteersNeeded = parseInt(volunteerPost.volunteersNeeded, 10);
-        
+
                 if (isNaN(volunteersNeeded)) {
                     return res.status(400).json({ message: 'The volunteersNeeded field is not a valid number.' });
                 }
-        
-             
+
+
                 if (volunteersNeeded > 0) {
-                    
+
                     const updateResult = await volunteerCollection.updateOne(
                         { _id: new ObjectId(volunteerPostId) },
                         { $set: { volunteersNeeded: volunteersNeeded - 1 } }
                     );
-        
+
                     if (updateResult.modifiedCount === 0) {
                         return res.status(400).json({ message: 'Failed to update volunteersNeeded.' });
                     }
                 } else {
                     return res.status(400).json({ message: 'No more volunteers needed for this post.' });
                 }
-        
+
                 const result = await requestsCollection.insertOne(requestData);
-        
+
                 if (result.insertedId) {
                     res.status(200).json({
                         message: 'Volunteer request successfully submitted.',
@@ -162,12 +180,37 @@ async function run() {
                 res.status(500).json({ message: 'Internal Server Error' });
             }
         });
-        
-        
-        
-        
-        
-        
+
+
+        app.put('/update-volunteer-post/:id', async (req, res) => {
+            // try {
+              const { id } = req.params;
+              const { _id, ...updatedData } = req.body; 
+          
+              const result = await volunteerCollection.updateOne(
+                { _id: new ObjectId(id) },
+                { $set: updatedData }
+              );
+
+              res.send(result)
+          
+            
+          });
+          
+
+
+          app.delete('/delete-volunteer-post/:id', async (req, res) => {
+            const { id } = req.params;
+          
+            const result = await volunteerCollection.deleteOne({ _id: new ObjectId(id) });
+            res.send(result)
+          });
+
+
+
+
+
+
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
