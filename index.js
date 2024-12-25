@@ -1,14 +1,22 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
+
+
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const app = express();
 const port = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin : ['http://localhost:5174'],
+    credentials : true
+}));
 app.use(express.json());
+app.use(cookieParser());
 
 // MongoDB URI
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.crj7d.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -30,6 +38,28 @@ async function run() {
         const volunteerCollection = client.db('volunteerDB').collection('volunteer');
         const requestsCollection = client.db('volunteerDB').collection('requests');
         const messagesCollection = client.db('volunteerDB').collection('messages');
+
+
+        // auth related APIs
+        app.post('/jwt', (req,res)=>{
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET,{expiresIn : '25h'});
+
+            res.cookie('token', token,{
+                httpOnly : true,
+                secure : false
+            })
+            .send({success: true})
+        })
+
+        app.post('/logout', (req,res)=>{
+            res.clearCookie('token',{
+                httpOnly: true,
+                secure: false
+            })
+            .send({success : true})
+        })
+      
 
         // Contact Us Page
         app.post('/contact-form', async (req, res) => {
