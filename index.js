@@ -12,9 +12,26 @@ const port = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:5174'],
+    origin: [
+        'http://localhost:5174',
+        'https://volunteer-management-c92d2.web.app',
+        'https://volunteer-management-c92d2.firebaseapp.com'
+
+    ],
     credentials: true
 }));
+
+// app.use(cors({
+//     origin: [
+//         'http://localhost:5174',
+//         'https://volunteer-management-c92d2.web.app',
+//         'https://volunteer-management-c92d2.firebaseapp.com'
+//     ],
+//     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow all necessary methods
+//     allowedHeaders: ['Content-Type', 'Authorization'],   // Include required headers
+//     credentials: true // Allow cookies and other credentials
+// }));
+
 app.use(express.json());
 app.use(cookieParser());
 
@@ -50,8 +67,8 @@ const client = new MongoClient(uri, {
 
 async function run() {
     try {
-        await client.connect();
-        console.log("Connected to MongoDB");
+        // await client.connect();
+        // console.log("Connected to MongoDB");
 
         // Database and collections
         const volunteerCollection = client.db('volunteerDB').collection('volunteer');
@@ -66,7 +83,8 @@ async function run() {
 
             res.cookie('token', token, {
                 httpOnly: true,
-                secure: false
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
             })
                 .send({ success: true })
         })
@@ -74,7 +92,8 @@ async function run() {
         app.post('/logout', (req, res) => {
             res.clearCookie('token', {
                 httpOnly: true,
-                secure: false
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
             })
                 .send({ success: true })
         })
@@ -146,7 +165,7 @@ async function run() {
 
 
         // Add Volunteer Post (Ensure volunteersNeeded is numeric)
-        app.post('/volunteers', async (req, res) => {
+        app.post('/volunteers', verifyToken, async (req, res) => {
             const volunteer = req.body;
 
 
@@ -215,8 +234,8 @@ async function run() {
         });
 
 
-        app.put('/update-volunteer-post/:id', async (req, res) => {
-            // try {
+        app.put('/update-volunteer-post/:id', verifyToken, async (req, res) => {
+            
               const { id } = req.params;
               const { _id, ...updatedData } = req.body; 
           
@@ -255,7 +274,7 @@ async function run() {
 
 
 
-        await client.db("admin").command({ ping: 1 });
+        // await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
     } catch (error) {
