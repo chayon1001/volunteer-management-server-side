@@ -18,6 +18,25 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+
+const verifyToken = (req, res, next)=>{
+    const token = req.cookies?.token;
+
+    if(!token){
+        return res.status(401).send({message: 'unauthorized access'})
+    }
+
+    // verify the token
+
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err,decoded)=>{
+        if(err){
+            return res.status(401).send({message: 'unauthorized access'})
+        }
+        req.user = decoded;
+        next()
+    })
+}
+
 // MongoDB URI
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.crj7d.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -97,9 +116,12 @@ async function run() {
 
 
         // Get all posts for a user
-        app.get('/my-volunteer-posts', async (req, res) => {
+        app.get('/my-volunteer-posts', verifyToken, async (req, res) => {
             const { email } = req.query; // User's email passed as a query parameter
             const posts = await volunteerCollection.find({ organizerEmail: email }).toArray();
+
+            // console.log(req.cookies?.token)
+
             res.send(posts);
           });
 
