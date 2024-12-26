@@ -110,6 +110,17 @@ async function run() {
             res.send(post);
           });
 
+          
+
+          // fetch the all volunteer request
+
+          app.get('/volunteer-requests', async (req, res) => {
+           
+              const requests = await requestsCollection.find().toArray();
+              res.send(requests)
+          });
+          
+
 
 
         // Add Volunteer Post (Ensure volunteersNeeded is numeric)
@@ -204,6 +215,17 @@ async function run() {
           
             const result = await volunteerCollection.deleteOne({ _id: new ObjectId(id) });
             res.send(result)
+          });
+
+
+        //   volunteer request deleted
+          app.delete('/volunteer-requests/:id', async (req, res) => {
+        
+              const { id } = req.params;
+              const result = await requestsCollection.deleteOne({ _id: new ObjectId(id) });
+
+              res.send(result)
+             
           });
 
 
