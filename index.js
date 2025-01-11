@@ -63,7 +63,7 @@ async function run() {
         // Database and collections
         const volunteerCollection = client.db('volunteerDB').collection('volunteer');
         const requestsCollection = client.db('volunteerDB').collection('requests');
-        const messagesCollection = client.db('volunteerDB').collection('messages');
+       
 
 
         // auth related APIs
@@ -89,13 +89,7 @@ async function run() {
         })
 
 
-        // Contact Us Page
-        app.post('/contact-form', async (req, res) => {
-            const { name, email, message } = req.body;
-            const result = await messagesCollection.insertOne({ name, email, message });
-            res.send(result);
-        });
-
+       
         // Get Volunteer Posts Sorted by Deadline
         app.get('/volunteers', async (req, res) => {
             const volunteers = await volunteerCollection.find().sort({ deadline: 1 }).limit(8).toArray();
