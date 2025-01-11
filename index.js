@@ -21,16 +21,6 @@ app.use(cors({
     credentials: true
 }));
 
-// app.use(cors({
-//     origin: [
-//         'http://localhost:5174',
-//         'https://volunteer-management-c92d2.web.app',
-//         'https://volunteer-management-c92d2.firebaseapp.com'
-//     ],
-//     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow all necessary methods
-//     allowedHeaders: ['Content-Type', 'Authorization'],   // Include required headers
-//     credentials: true // Allow cookies and other credentials
-// }));
 
 app.use(express.json());
 app.use(cookieParser());
@@ -108,7 +98,7 @@ async function run() {
 
         // Get Volunteer Posts Sorted by Deadline
         app.get('/volunteers', async (req, res) => {
-            const volunteers = await volunteerCollection.find().sort({ deadline: 1 }).limit(6).toArray();
+            const volunteers = await volunteerCollection.find().sort({ deadline: 1 }).limit(8).toArray();
             res.send(volunteers);
         });
 
